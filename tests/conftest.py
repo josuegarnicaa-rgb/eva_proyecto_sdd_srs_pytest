@@ -19,11 +19,10 @@ from app.services.servicio_usuario import (
 
 
 @pytest.fixture
-def conexion(
-    tmp_path,
-):
+def conexion(tmp_path):
     ruta_temporal = (
-        tmp_path / "pruebas.db"
+        tmp_path
+        / "pruebas.db"
     )
 
     conexion = obtener_conexion(

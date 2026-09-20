@@ -1,11 +1,15 @@
+import sqlite3
 from datetime import date
 
-from app.models.prestamo import Prestamo
-
-from app.services.servicio_equipo import (
-    ServicioEquipo,
+from app.persistencia.repositorio_equipo import (
+    RepositorioEquipo,
 )
-
+from app.persistencia.repositorio_prestamo import (
+    RepositorioPrestamo,
+)
+from app.persistencia.repositorio_usuario import (
+    RepositorioUsuario,
+)
 from app.validators.validador_prestamo import (
     validar_fecha,
     validar_identificador,
@@ -14,14 +18,25 @@ from app.validators.validador_prestamo import (
 
 
 class ServicioPrestamo:
-    def __init__(
-        self,
-        conexion,
-    ):
+    def __init__(self, conexion):
         self.conexion = conexion
 
-        self.servicio_equipo = ServicioEquipo(
-            conexion
+        self.repositorio_usuario = (
+            RepositorioUsuario(
+                conexion
+            )
+        )
+
+        self.repositorio_equipo = (
+            RepositorioEquipo(
+                conexion
+            )
+        )
+
+        self.repositorio_prestamo = (
+            RepositorioPrestamo(
+                conexion
+            )
         )
 
     def crear_prestamo(
@@ -46,16 +61,17 @@ class ServicioPrestamo:
             fecha_devolucion,
         )
 
-        if not self._usuario_existe(
-            usuario_id
+        if not (
+            self.repositorio_usuario
+            .existe(usuario_id)
         ):
             raise ValueError(
                 "El usuario no existe."
             )
 
         equipo = (
-            self.servicio_equipo
-            .obtener_equipo(equipo_id)
+            self.repositorio_equipo
+            .obtener(equipo_id)
         )
 
         if equipo is None:
@@ -63,55 +79,53 @@ class ServicioPrestamo:
                 "El equipo no existe."
             )
 
-        if (
-            equipo.estado != "DISPONIBLE"
-            or self._tiene_prestamo_abierto(
+        prestamo_abierto = (
+            self.repositorio_prestamo
+            .tiene_prestamo_abierto(
                 equipo_id
             )
+        )
+
+        if (
+            equipo.estado != "DISPONIBLE"
+            or prestamo_abierto
         ):
             raise ValueError(
                 "El equipo no está disponible."
             )
 
         try:
-            cursor = self.conexion.execute(
-                """
-                INSERT INTO prestamos (
-                    usuario_id,
-                    equipo_id,
-                    fecha_prestamo,
-                    fecha_devolucion,
-                    estado
-                )
-                VALUES (
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    'ACTIVO'
-                )
-                """,
-                (
+            prestamo_id = (
+                self.repositorio_prestamo
+                .insertar(
                     usuario_id,
                     equipo_id,
                     inicio.isoformat(),
                     fin.isoformat(),
-                ),
+                )
             )
 
-            self.servicio_equipo.cambiar_estado(
+            self.repositorio_equipo.cambiar_estado(
                 equipo_id,
                 "PRESTADO",
             )
 
             self.conexion.commit()
 
+        except sqlite3.IntegrityError as error:
+            self.conexion.rollback()
+
+            raise ValueError(
+                "No se pudo crear "
+                "el préstamo."
+            ) from error
+
         except Exception:
             self.conexion.rollback()
             raise
 
         return self.consultar_prestamo(
-            cursor.lastrowid
+            prestamo_id
         )
 
     def registrar_devolucion(
@@ -123,8 +137,13 @@ class ServicioPrestamo:
             "El identificador del préstamo",
         )
 
-        prestamo = self.consultar_prestamo(
-            prestamo_id
+        self._actualizar_atrasados(
+            date.today()
+        )
+
+        prestamo = (
+            self.repositorio_prestamo
+            .obtener(prestamo_id)
         )
 
         if prestamo is None:
@@ -138,16 +157,12 @@ class ServicioPrestamo:
             )
 
         try:
-            self.conexion.execute(
-                """
-                UPDATE prestamos
-                SET estado = 'DEVUELTO'
-                WHERE id = ?
-                """,
-                (prestamo_id,),
+            self.repositorio_prestamo.cambiar_estado(
+                prestamo_id,
+                "DEVUELTO",
             )
 
-            self.servicio_equipo.cambiar_estado(
+            self.repositorio_equipo.cambiar_estado(
                 prestamo.equipo_id,
                 "DISPONIBLE",
             )
@@ -158,8 +173,9 @@ class ServicioPrestamo:
             self.conexion.rollback()
             raise
 
-        return self.consultar_prestamo(
-            prestamo_id
+        return (
+            self.repositorio_prestamo
+            .obtener(prestamo_id)
         )
 
     def consultar_prestamo(
@@ -171,47 +187,24 @@ class ServicioPrestamo:
             "El identificador del préstamo",
         )
 
-        fila = self.conexion.execute(
-            """
-            SELECT
-                id,
-                usuario_id,
-                equipo_id,
-                fecha_prestamo,
-                fecha_devolucion,
-                estado
-            FROM prestamos
-            WHERE id = ?
-            """,
-            (prestamo_id,),
-        ).fetchone()
+        self._actualizar_atrasados(
+            date.today()
+        )
 
-        if fila is None:
-            return None
-
-        return self._crear_prestamo(
-            fila
+        return (
+            self.repositorio_prestamo
+            .obtener(prestamo_id)
         )
 
     def listar_prestamos(self):
-        filas = self.conexion.execute(
-            """
-            SELECT
-                id,
-                usuario_id,
-                equipo_id,
-                fecha_prestamo,
-                fecha_devolucion,
-                estado
-            FROM prestamos
-            ORDER BY id DESC
-            """
-        ).fetchall()
+        self._actualizar_atrasados(
+            date.today()
+        )
 
-        return [
-            self._crear_prestamo(fila)
-            for fila in filas
-        ]
+        return (
+            self.repositorio_prestamo
+            .listar()
+        )
 
     def detectar_prestamos_atrasados(
         self,
@@ -222,92 +215,40 @@ class ServicioPrestamo:
             "La fecha actual",
         )
 
-        filas = self.conexion.execute(
-            """
-            SELECT id
-            FROM prestamos
-            WHERE estado IN (
-                'ACTIVO',
-                'ATRASADO'
+        identificadores = (
+            self._actualizar_atrasados(
+                hoy
             )
-            AND date(fecha_devolucion)
-                < date(?)
-            ORDER BY id
-            """,
-            (hoy.isoformat(),),
-        ).fetchall()
-
-        identificadores = [
-            fila["id"]
-            for fila in filas
-        ]
-
-        if identificadores:
-            self.conexion.executemany(
-                """
-                UPDATE prestamos
-                SET estado = 'ATRASADO'
-                WHERE id = ?
-                AND estado = 'ACTIVO'
-                """,
-                [
-                    (prestamo_id,)
-                    for prestamo_id
-                    in identificadores
-                ],
-            )
-
-            self.conexion.commit()
+        )
 
         return [
-            self.consultar_prestamo(
-                prestamo_id
-            )
+            self.repositorio_prestamo
+            .obtener(prestamo_id)
             for prestamo_id
             in identificadores
         ]
 
-    def _usuario_existe(
+    def _actualizar_atrasados(
         self,
-        usuario_id,
+        fecha_actual,
     ):
-        fila = self.conexion.execute(
-            """
-            SELECT 1
-            FROM usuarios
-            WHERE id = ?
-            """,
-            (usuario_id,),
-        ).fetchone()
-
-        return fila is not None
-
-    def _tiene_prestamo_abierto(
-        self,
-        equipo_id,
-    ):
-        fila = self.conexion.execute(
-            """
-            SELECT 1
-            FROM prestamos
-            WHERE equipo_id = ?
-            AND estado IN (
-                'ACTIVO',
-                'ATRASADO'
-            )
-            """,
-            (equipo_id,),
-        ).fetchone()
-
-        return fila is not None
-
-    @staticmethod
-    def _crear_prestamo(fila):
-        return Prestamo(
-            id=fila["id"],
-            usuario_id=fila["usuario_id"],
-            equipo_id=fila["equipo_id"],
-            fecha_prestamo=fila["fecha_prestamo"],
-            fecha_devolucion=fila["fecha_devolucion"],
-            estado=fila["estado"],
+        hoy = validar_fecha(
+            fecha_actual,
+            "La fecha actual",
         )
+
+        identificadores = (
+            self.repositorio_prestamo
+            .obtener_ids_atrasados(
+                hoy.isoformat()
+            )
+        )
+
+        if identificadores:
+            self.repositorio_prestamo.marcar_atrasados(
+                identificadores
+            )
+
+            self.conexion.commit()
+
+        return identificadores

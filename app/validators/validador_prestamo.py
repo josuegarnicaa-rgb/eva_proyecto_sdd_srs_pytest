@@ -1,7 +1,12 @@
+import re
 from datetime import date, datetime
 
 
 FORMATO_FECHA = "%Y-%m-%d"
+
+PATRON_ENTERO_POSITIVO = re.compile(
+    r"^[0-9]+$"
+)
 
 
 def validar_identificador(
@@ -10,20 +15,36 @@ def validar_identificador(
 ):
     if isinstance(valor, bool):
         raise ValueError(
-            f"{campo} debe ser un entero positivo."
+            f"{campo} debe ser "
+            "un entero positivo."
         )
 
-    try:
-        numero = int(valor)
+    if isinstance(valor, int):
+        numero = valor
 
-    except (TypeError, ValueError) as error:
+    elif isinstance(valor, str):
+        texto = valor.strip()
+
+        if not PATRON_ENTERO_POSITIVO.fullmatch(
+            texto
+        ):
+            raise ValueError(
+                f"{campo} debe ser "
+                "un entero positivo."
+            )
+
+        numero = int(texto)
+
+    else:
         raise ValueError(
-            f"{campo} debe ser un entero positivo."
-        ) from error
+            f"{campo} debe ser "
+            "un entero positivo."
+        )
 
     if numero <= 0:
         raise ValueError(
-            f"{campo} debe ser un entero positivo."
+            f"{campo} debe ser "
+            "un entero positivo."
         )
 
     return numero
@@ -41,7 +62,8 @@ def validar_fecha(
 
     if not isinstance(valor, str):
         raise ValueError(
-            f"{campo} no representa una fecha válida."
+            f"{campo} no representa "
+            "una fecha válida."
         )
 
     try:
@@ -52,7 +74,8 @@ def validar_fecha(
 
     except ValueError as error:
         raise ValueError(
-            f"{campo} no representa una fecha válida. "
+            f"{campo} no representa "
+            "una fecha válida. "
             "Use AAAA-MM-DD."
         ) from error
 
@@ -73,7 +96,9 @@ def validar_rango_fechas(
 
     if fin < inicio:
         raise ValueError(
-            "La fecha de devolución no puede ser anterior al préstamo."
+            "La fecha de devolución "
+            "no puede ser anterior "
+            "al préstamo."
         )
 
     return inicio, fin

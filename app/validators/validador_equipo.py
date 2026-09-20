@@ -9,17 +9,21 @@ PATRON_CODIGO = re.compile(
 def validar_nombre_equipo(nombre):
     if not isinstance(nombre, str):
         raise ValueError(
-            "El nombre del equipo debe ser texto."
+            "El nombre del equipo "
+            "debe ser texto."
         )
 
-    nombre = nombre.strip()
+    nombre = " ".join(
+        nombre.strip().split()
+    )
 
     if not 2 <= len(nombre) <= 80:
         raise ValueError(
-            "El nombre del equipo debe tener entre 2 y 80 caracteres."
+            "El nombre del equipo debe "
+            "tener entre 2 y 80 caracteres."
         )
 
-    return " ".join(nombre.split())
+    return nombre
 
 
 def validar_codigo_equipo(codigo):
@@ -30,16 +34,23 @@ def validar_codigo_equipo(codigo):
 
     codigo = codigo.strip()
 
-    if not PATRON_CODIGO.fullmatch(codigo):
+    if not PATRON_CODIGO.fullmatch(
+        codigo
+    ):
         raise ValueError(
-            "El código debe tener de 3 a 10 letras mayúsculas o números."
+            "El código debe tener de "
+            "3 a 10 letras mayúsculas "
+            "o números."
         )
 
     return codigo
 
 
 def validar_descripcion(descripcion):
-    if not isinstance(descripcion, str):
+    if not isinstance(
+        descripcion,
+        str,
+    ):
         raise ValueError(
             "La descripción debe ser texto."
         )
@@ -48,7 +59,8 @@ def validar_descripcion(descripcion):
 
     if not 1 <= len(descripcion) <= 250:
         raise ValueError(
-            "La descripción debe tener entre 1 y 250 caracteres."
+            "La descripción debe tener "
+            "entre 1 y 250 caracteres."
         )
 
     return descripcion

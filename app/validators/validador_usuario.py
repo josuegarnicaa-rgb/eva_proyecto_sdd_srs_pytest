@@ -5,9 +5,8 @@ PATRON_NOMBRE = re.compile(
     r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$"
 )
 
-PATRON_CORREO = re.compile(
-    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
-    r"([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)$"
+PATRON_PARTE_LOCAL = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$"
 )
 
 DOMINIOS_PERMITIDOS = {
@@ -18,23 +17,32 @@ DOMINIOS_PERMITIDOS = {
 }
 
 
-def _validar_texto_persona(valor, campo):
+def _validar_texto_persona(
+    valor,
+    campo,
+):
     if not isinstance(valor, str):
-        raise ValueError(f"{campo} debe ser texto.")
+        raise ValueError(
+            f"{campo} debe ser texto."
+        )
 
-    valor = valor.strip()
+    valor = " ".join(
+        valor.strip().split()
+    )
 
     if not 2 <= len(valor) <= 50:
         raise ValueError(
-            f"{campo} debe tener entre 2 y 50 caracteres."
+            f"{campo} debe tener "
+            "entre 2 y 50 caracteres."
         )
 
     if not PATRON_NOMBRE.fullmatch(valor):
         raise ValueError(
-            f"{campo} solo admite letras y espacios."
+            f"{campo} solo admite "
+            "letras y espacios."
         )
 
-    return " ".join(valor.split())
+    return valor
 
 
 def validar_nombre(nombre):
@@ -61,21 +69,54 @@ def validar_correo(correo):
 
     if not correo or len(correo) > 100:
         raise ValueError(
-            "El correo debe tener como máximo 100 caracteres."
+            "El correo debe tener "
+            "como máximo 100 caracteres."
         )
 
-    coincidencia = PATRON_CORREO.fullmatch(correo)
-
-    if not coincidencia:
+    if correo.count("@") != 1:
         raise ValueError(
-            "El correo no tiene un formato válido."
+            "El correo no tiene "
+            "un formato válido."
         )
 
-    dominio = coincidencia.group(1).lower()
+    parte_local, dominio = correo.split(
+        "@"
+    )
+
+    if not parte_local or not dominio:
+        raise ValueError(
+            "El correo no tiene "
+            "un formato válido."
+        )
+
+    if len(parte_local) > 64:
+        raise ValueError(
+            "El correo no tiene "
+            "un formato válido."
+        )
+
+    if not PATRON_PARTE_LOCAL.fullmatch(
+        parte_local
+    ):
+        raise ValueError(
+            "El correo no tiene "
+            "un formato válido."
+        )
+
+    if (
+        parte_local.startswith(".")
+        or parte_local.endswith(".")
+        or ".." in parte_local
+    ):
+        raise ValueError(
+            "El correo no tiene "
+            "un formato válido."
+        )
 
     if dominio not in DOMINIOS_PERMITIDOS:
         raise ValueError(
-            "El dominio del correo no está permitido."
+            "El dominio del correo "
+            "no está permitido."
         )
 
     return correo

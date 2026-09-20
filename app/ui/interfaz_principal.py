@@ -1,30 +1,11 @@
 import tkinter as tk
+from datetime import date, timedelta
+from tkinter import messagebox, ttk
 
-from datetime import (
-    date,
-    timedelta,
-)
-
-from tkinter import (
-    messagebox,
-    ttk,
-)
-
-from app.database import (
-    obtener_conexion,
-)
-
-from app.services.servicio_equipo import (
-    ServicioEquipo,
-)
-
-from app.services.servicio_prestamo import (
-    ServicioPrestamo,
-)
-
-from app.services.servicio_usuario import (
-    ServicioUsuario,
-)
+from app.database import obtener_conexion
+from app.services.servicio_equipo import ServicioEquipo
+from app.services.servicio_prestamo import ServicioPrestamo
+from app.services.servicio_usuario import ServicioUsuario
 
 
 class InterfazPrincipal(tk.Tk):
@@ -34,15 +15,8 @@ class InterfazPrincipal(tk.Tk):
         self.title(
             "Gestión de préstamos de laboratorio"
         )
-
-        self.geometry(
-            "1100x700"
-        )
-
-        self.minsize(
-            980,
-            620,
-        )
+        self.geometry("1100x700")
+        self.minsize(980, 620)
 
         self.conexion = obtener_conexion()
 
@@ -142,68 +116,30 @@ class InterfazPrincipal(tk.Tk):
             fill="x"
         )
 
-        ttk.Label(
+        self.nombre_usuario = tk.StringVar()
+        self.apellido_usuario = tk.StringVar()
+        self.correo_usuario = tk.StringVar()
+
+        self._crear_campo(
             formulario,
-            text="Nombre",
-        ).grid(
-            row=0,
-            column=0,
-            sticky="w",
+            "Nombre",
+            self.nombre_usuario,
+            0,
         )
 
-        ttk.Label(
+        self._crear_campo(
             formulario,
-            text="Apellido",
-        ).grid(
-            row=0,
-            column=1,
-            sticky="w",
-            padx=(10, 0),
+            "Apellido",
+            self.apellido_usuario,
+            1,
         )
 
-        ttk.Label(
+        self._crear_campo(
             formulario,
-            text="Correo",
-        ).grid(
-            row=0,
-            column=2,
-            sticky="w",
-            padx=(10, 0),
-        )
-
-        self.ent_nombre_usuario = ttk.Entry(
-            formulario,
-            width=24,
-        )
-
-        self.ent_apellido_usuario = ttk.Entry(
-            formulario,
-            width=24,
-        )
-
-        self.ent_correo_usuario = ttk.Entry(
-            formulario,
-            width=34,
-        )
-
-        self.ent_nombre_usuario.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-        )
-
-        self.ent_apellido_usuario.grid(
-            row=1,
-            column=1,
-            sticky="ew",
-            padx=(10, 0),
-        )
-
-        self.ent_correo_usuario.grid(
-            row=1,
-            column=2,
-            sticky="ew",
-            padx=(10, 0),
+            "Correo",
+            self.correo_usuario,
+            2,
+            ancho=32,
         )
 
         ttk.Button(
@@ -214,6 +150,7 @@ class InterfazPrincipal(tk.Tk):
             row=1,
             column=3,
             padx=(10, 0),
+            sticky="ew",
         )
 
         for columna in range(3):
@@ -225,13 +162,13 @@ class InterfazPrincipal(tk.Tk):
         self.tabla_usuarios = (
             self._crear_tabla(
                 self.tab_usuarios,
-                (
+                columnas=(
                     "id",
                     "nombre",
                     "apellido",
                     "correo",
                 ),
-                (
+                titulos=(
                     "ID",
                     "Nombre",
                     "Apellido",
@@ -251,68 +188,33 @@ class InterfazPrincipal(tk.Tk):
             fill="x"
         )
 
-        ttk.Label(
+        self.nombre_equipo = tk.StringVar()
+        self.codigo_equipo = tk.StringVar()
+        self.descripcion_equipo = (
+            tk.StringVar()
+        )
+
+        self._crear_campo(
             formulario,
-            text="Nombre",
-        ).grid(
-            row=0,
-            column=0,
-            sticky="w",
+            "Nombre",
+            self.nombre_equipo,
+            0,
         )
 
-        ttk.Label(
+        self._crear_campo(
             formulario,
-            text="Código",
-        ).grid(
-            row=0,
-            column=1,
-            sticky="w",
-            padx=(10, 0),
+            "Código",
+            self.codigo_equipo,
+            1,
+            ancho=16,
         )
 
-        ttk.Label(
+        self._crear_campo(
             formulario,
-            text="Descripción",
-        ).grid(
-            row=0,
-            column=2,
-            sticky="w",
-            padx=(10, 0),
-        )
-
-        self.ent_nombre_equipo = ttk.Entry(
-            formulario,
-            width=24,
-        )
-
-        self.ent_codigo_equipo = ttk.Entry(
-            formulario,
-            width=16,
-        )
-
-        self.ent_descripcion_equipo = ttk.Entry(
-            formulario,
-            width=45,
-        )
-
-        self.ent_nombre_equipo.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-        )
-
-        self.ent_codigo_equipo.grid(
-            row=1,
-            column=1,
-            sticky="ew",
-            padx=(10, 0),
-        )
-
-        self.ent_descripcion_equipo.grid(
-            row=1,
-            column=2,
-            sticky="ew",
-            padx=(10, 0),
+            "Descripción",
+            self.descripcion_equipo,
+            2,
+            ancho=40,
         )
 
         ttk.Button(
@@ -323,6 +225,7 @@ class InterfazPrincipal(tk.Tk):
             row=1,
             column=3,
             padx=(10, 0),
+            sticky="ew",
         )
 
         for columna in range(3):
@@ -334,14 +237,14 @@ class InterfazPrincipal(tk.Tk):
         self.tabla_equipos = (
             self._crear_tabla(
                 self.tab_equipos,
-                (
+                columnas=(
                     "id",
                     "nombre",
                     "codigo",
                     "descripcion",
                     "estado",
                 ),
-                (
+                titulos=(
                     "ID",
                     "Nombre",
                     "Código",
@@ -362,88 +265,53 @@ class InterfazPrincipal(tk.Tk):
             fill="x"
         )
 
-        etiquetas = (
-            "ID usuario",
-            "ID equipo",
-            "Fecha préstamo",
-            "Fecha devolución",
-        )
-
-        for indice, texto in enumerate(
-            etiquetas
-        ):
-            ttk.Label(
-                formulario,
-                text=texto,
-            ).grid(
-                row=0,
-                column=indice,
-                sticky="w",
-                padx=(
-                    10 if indice else 0,
-                    0,
-                ),
-            )
-
-        self.ent_usuario_id = ttk.Entry(
-            formulario,
-            width=12,
-        )
-
-        self.ent_equipo_id = ttk.Entry(
-            formulario,
-            width=12,
-        )
-
-        self.ent_fecha_prestamo = ttk.Entry(
-            formulario,
-            width=16,
-        )
-
-        self.ent_fecha_devolucion = ttk.Entry(
-            formulario,
-            width=16,
-        )
-
         hoy = date.today()
 
-        self.ent_fecha_prestamo.insert(
-            0,
-            hoy.isoformat(),
+        self.usuario_id = tk.StringVar()
+        self.equipo_id = tk.StringVar()
+
+        self.fecha_prestamo = tk.StringVar(
+            value=hoy.isoformat()
         )
 
-        self.ent_fecha_devolucion.insert(
-            0,
-            (
+        self.fecha_devolucion = tk.StringVar(
+            value=(
                 hoy
                 + timedelta(days=7)
-            ).isoformat(),
+            ).isoformat()
         )
 
-        entradas = (
-            self.ent_usuario_id,
-            self.ent_equipo_id,
-            self.ent_fecha_prestamo,
-            self.ent_fecha_devolucion,
+        self._crear_campo(
+            formulario,
+            "ID usuario",
+            self.usuario_id,
+            0,
+            ancho=12,
         )
 
-        for indice, entrada in enumerate(
-            entradas
-        ):
-            entrada.grid(
-                row=1,
-                column=indice,
-                sticky="ew",
-                padx=(
-                    10 if indice else 0,
-                    0,
-                ),
-            )
+        self._crear_campo(
+            formulario,
+            "ID equipo",
+            self.equipo_id,
+            1,
+            ancho=12,
+        )
 
-            formulario.columnconfigure(
-                indice,
-                weight=1,
-            )
+        self._crear_campo(
+            formulario,
+            "Fecha préstamo",
+            self.fecha_prestamo,
+            2,
+            ancho=16,
+        )
+
+        self._crear_campo(
+            formulario,
+            "Fecha devolución",
+            self.fecha_devolucion,
+            3,
+            ancho=16,
+        )
 
         ttk.Button(
             formulario,
@@ -453,7 +321,14 @@ class InterfazPrincipal(tk.Tk):
             row=1,
             column=4,
             padx=(10, 0),
+            sticky="ew",
         )
+
+        for columna in range(4):
+            formulario.columnconfigure(
+                columna,
+                weight=1,
+            )
 
         devolucion = ttk.Frame(
             self.tab_prestamos,
@@ -464,6 +339,10 @@ class InterfazPrincipal(tk.Tk):
             fill="x"
         )
 
+        self.prestamo_devolver = (
+            tk.StringVar()
+        )
+
         ttk.Label(
             devolucion,
             text="ID préstamo a devolver",
@@ -471,12 +350,13 @@ class InterfazPrincipal(tk.Tk):
             side="left"
         )
 
-        self.ent_prestamo_devolver = ttk.Entry(
+        ttk.Entry(
             devolucion,
+            textvariable=(
+                self.prestamo_devolver
+            ),
             width=12,
-        )
-
-        self.ent_prestamo_devolver.pack(
+        ).pack(
             side="left",
             padx=8,
         )
@@ -492,7 +372,7 @@ class InterfazPrincipal(tk.Tk):
         self.tabla_prestamos = (
             self._crear_tabla(
                 self.tab_prestamos,
-                (
+                columnas=(
                     "id",
                     "usuario",
                     "equipo",
@@ -500,7 +380,7 @@ class InterfazPrincipal(tk.Tk):
                     "fin",
                     "estado",
                 ),
-                (
+                titulos=(
                     "ID",
                     "Usuario",
                     "Equipo",
@@ -520,6 +400,10 @@ class InterfazPrincipal(tk.Tk):
             fill="x"
         )
 
+        self.consulta_prestamo = (
+            tk.StringVar()
+        )
+
         ttk.Label(
             barra,
             text="ID préstamo",
@@ -527,12 +411,13 @@ class InterfazPrincipal(tk.Tk):
             side="left"
         )
 
-        self.ent_consulta_prestamo = ttk.Entry(
+        ttk.Entry(
             barra,
+            textvariable=(
+                self.consulta_prestamo
+            ),
             width=12,
-        )
-
-        self.ent_consulta_prestamo.pack(
+        ).pack(
             side="left",
             padx=8,
         )
@@ -554,13 +439,15 @@ class InterfazPrincipal(tk.Tk):
             padx=8,
         )
 
-        self.lbl_resultado_consulta = ttk.Label(
-            self.tab_consultas,
-            text=(
-                "Ingrese un ID o consulte "
-                "los préstamos atrasados."
-            ),
-            padding=(0, 12),
+        self.lbl_resultado_consulta = (
+            ttk.Label(
+                self.tab_consultas,
+                text=(
+                    "Ingrese un ID o consulte "
+                    "los préstamos atrasados."
+                ),
+                padding=(0, 12),
+            )
         )
 
         self.lbl_resultado_consulta.pack(
@@ -570,7 +457,7 @@ class InterfazPrincipal(tk.Tk):
         self.tabla_atrasados = (
             self._crear_tabla(
                 self.tab_consultas,
-                (
+                columnas=(
                     "id",
                     "usuario",
                     "equipo",
@@ -578,7 +465,7 @@ class InterfazPrincipal(tk.Tk):
                     "fin",
                     "estado",
                 ),
-                (
+                titulos=(
                     "ID",
                     "Usuario",
                     "Equipo",
@@ -587,6 +474,41 @@ class InterfazPrincipal(tk.Tk):
                     "Estado",
                 ),
             )
+        )
+
+    @staticmethod
+    def _crear_campo(
+        padre,
+        texto,
+        variable,
+        columna,
+        ancho=24,
+    ):
+        separacion = (
+            (10, 0)
+            if columna
+            else (0, 0)
+        )
+
+        ttk.Label(
+            padre,
+            text=texto,
+        ).grid(
+            row=0,
+            column=columna,
+            sticky="w",
+            padx=separacion,
+        )
+
+        ttk.Entry(
+            padre,
+            textvariable=variable,
+            width=ancho,
+        ).grid(
+            row=1,
+            column=columna,
+            sticky="ew",
+            padx=separacion,
         )
 
     @staticmethod
@@ -611,14 +533,25 @@ class InterfazPrincipal(tk.Tk):
             show="headings",
         )
 
-        barra = ttk.Scrollbar(
+        barra_vertical = ttk.Scrollbar(
             contenedor,
             orient="vertical",
             command=tabla.yview,
         )
 
+        barra_horizontal = ttk.Scrollbar(
+            contenedor,
+            orient="horizontal",
+            command=tabla.xview,
+        )
+
         tabla.configure(
-            yscrollcommand=barra.set
+            yscrollcommand=(
+                barra_vertical.set
+            ),
+            xscrollcommand=(
+                barra_horizontal.set
+            ),
         )
 
         for columna, titulo in zip(
@@ -633,18 +566,36 @@ class InterfazPrincipal(tk.Tk):
             tabla.column(
                 columna,
                 anchor="center",
-                width=130,
+                width=140,
+                minwidth=90,
             )
 
-        tabla.pack(
-            side="left",
-            fill="both",
-            expand=True,
+        tabla.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
         )
 
-        barra.pack(
-            side="right",
-            fill="y",
+        barra_vertical.grid(
+            row=0,
+            column=1,
+            sticky="ns",
+        )
+
+        barra_horizontal.grid(
+            row=1,
+            column=0,
+            sticky="ew",
+        )
+
+        contenedor.rowconfigure(
+            0,
+            weight=1,
+        )
+
+        contenedor.columnconfigure(
+            0,
+            weight=1,
         )
 
         return tabla
@@ -654,23 +605,26 @@ class InterfazPrincipal(tk.Tk):
             usuario = (
                 self.usuarios
                 .registrar_usuario(
-                    self.ent_nombre_usuario.get(),
-                    self.ent_apellido_usuario.get(),
-                    self.ent_correo_usuario.get(),
+                    self.nombre_usuario.get(),
+                    self.apellido_usuario.get(),
+                    self.correo_usuario.get(),
                 )
             )
 
-            self._limpiar_entradas(
-                self.ent_nombre_usuario,
-                self.ent_apellido_usuario,
-                self.ent_correo_usuario,
+            self._limpiar_variables(
+                self.nombre_usuario,
+                self.apellido_usuario,
+                self.correo_usuario,
             )
 
             self._actualizar_usuarios()
 
             messagebox.showinfo(
                 "Correcto",
-                f"Usuario {usuario.id} registrado.",
+                (
+                    f"Usuario "
+                    f"{usuario.id} registrado."
+                ),
             )
 
         except ValueError as error:
@@ -684,23 +638,26 @@ class InterfazPrincipal(tk.Tk):
             equipo = (
                 self.equipos
                 .registrar_equipo(
-                    self.ent_nombre_equipo.get(),
-                    self.ent_codigo_equipo.get(),
-                    self.ent_descripcion_equipo.get(),
+                    self.nombre_equipo.get(),
+                    self.codigo_equipo.get(),
+                    self.descripcion_equipo.get(),
                 )
             )
 
-            self._limpiar_entradas(
-                self.ent_nombre_equipo,
-                self.ent_codigo_equipo,
-                self.ent_descripcion_equipo,
+            self._limpiar_variables(
+                self.nombre_equipo,
+                self.codigo_equipo,
+                self.descripcion_equipo,
             )
 
             self._actualizar_equipos()
 
             messagebox.showinfo(
                 "Correcto",
-                f"Equipo {equipo.id} registrado.",
+                (
+                    f"Equipo "
+                    f"{equipo.id} registrado."
+                ),
             )
 
         except ValueError as error:
@@ -714,16 +671,16 @@ class InterfazPrincipal(tk.Tk):
             prestamo = (
                 self.prestamos
                 .crear_prestamo(
-                    self.ent_usuario_id.get(),
-                    self.ent_equipo_id.get(),
-                    self.ent_fecha_prestamo.get(),
-                    self.ent_fecha_devolucion.get(),
+                    self.usuario_id.get(),
+                    self.equipo_id.get(),
+                    self.fecha_prestamo.get(),
+                    self.fecha_devolucion.get(),
                 )
             )
 
-            self._limpiar_entradas(
-                self.ent_usuario_id,
-                self.ent_equipo_id,
+            self._limpiar_variables(
+                self.usuario_id,
+                self.equipo_id,
             )
 
             self._actualizar_equipos()
@@ -731,7 +688,10 @@ class InterfazPrincipal(tk.Tk):
 
             messagebox.showinfo(
                 "Correcto",
-                f"Préstamo {prestamo.id} creado.",
+                (
+                    f"Préstamo "
+                    f"{prestamo.id} creado."
+                ),
             )
 
         except ValueError as error:
@@ -745,12 +705,12 @@ class InterfazPrincipal(tk.Tk):
             prestamo = (
                 self.prestamos
                 .registrar_devolucion(
-                    self.ent_prestamo_devolver.get()
+                    self.prestamo_devolver.get()
                 )
             )
 
-            self._limpiar_entradas(
-                self.ent_prestamo_devolver
+            self._limpiar_variables(
+                self.prestamo_devolver
             )
 
             self._actualizar_equipos()
@@ -775,7 +735,7 @@ class InterfazPrincipal(tk.Tk):
             prestamo = (
                 self.prestamos
                 .consultar_prestamo(
-                    self.ent_consulta_prestamo.get()
+                    self.consulta_prestamo.get()
                 )
             )
 
@@ -786,19 +746,24 @@ class InterfazPrincipal(tk.Tk):
                         "con ese ID."
                     )
                 )
-
                 return
 
             self.lbl_resultado_consulta.config(
                 text=(
                     f"Préstamo {prestamo.id} | "
-                    f"Usuario {prestamo.usuario_id} | "
-                    f"Equipo {prestamo.equipo_id} | "
-                    f"{prestamo.fecha_prestamo} a "
-                    f"{prestamo.fecha_devolucion} | "
-                    f"Estado: {prestamo.estado}"
+                    f"Usuario "
+                    f"{prestamo.usuario_id} | "
+                    f"Equipo "
+                    f"{prestamo.equipo_id} | "
+                    f"{prestamo.fecha_prestamo} "
+                    f"a "
+                    f"{prestamo.fecha_devolucion} "
+                    f"| Estado: "
+                    f"{prestamo.estado}"
                 )
             )
+
+            self._actualizar_prestamos()
 
         except ValueError as error:
             messagebox.showerror(
@@ -832,7 +797,7 @@ class InterfazPrincipal(tk.Tk):
 
         self.lbl_resultado_consulta.config(
             text=(
-                f"Préstamos atrasados: "
+                "Préstamos atrasados: "
                 f"{len(atrasados)}"
             )
         )
@@ -889,7 +854,8 @@ class InterfazPrincipal(tk.Tk):
         )
 
         for prestamo in (
-            self.prestamos.listar_prestamos()
+            self.prestamos
+            .listar_prestamos()
         ):
             self.tabla_prestamos.insert(
                 "",
@@ -906,18 +872,19 @@ class InterfazPrincipal(tk.Tk):
 
     @staticmethod
     def _vaciar_tabla(tabla):
-        for elemento in tabla.get_children():
-            tabla.delete(elemento)
+        for elemento in (
+            tabla.get_children()
+        ):
+            tabla.delete(
+                elemento
+            )
 
     @staticmethod
-    def _limpiar_entradas(
-        *entradas,
+    def _limpiar_variables(
+        *variables,
     ):
-        for entrada in entradas:
-            entrada.delete(
-                0,
-                "end",
-            )
+        for variable in variables:
+            variable.set("")
 
     def _cerrar(self):
         self.conexion.close()

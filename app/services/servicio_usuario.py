@@ -1,5 +1,11 @@
-from app.models.usuario import Usuario
+import sqlite3
 
+from app.persistencia.repositorio_usuario import (
+    RepositorioUsuario,
+)
+from app.validators.validador_prestamo import (
+    validar_identificador,
+)
 from app.validators.validador_usuario import (
     validar_apellido,
     validar_correo,
@@ -11,103 +17,72 @@ class ServicioUsuario:
     def __init__(self, conexion):
         self.conexion = conexion
 
+        self.repositorio = (
+            RepositorioUsuario(
+                conexion
+            )
+        )
+
     def registrar_usuario(
         self,
         nombre,
         apellido,
         correo,
     ):
-        nombre = validar_nombre(nombre)
-        apellido = validar_apellido(apellido)
-        correo = validar_correo(correo)
+        nombre = validar_nombre(
+            nombre
+        )
 
-        if self._correo_existe(correo):
+        apellido = validar_apellido(
+            apellido
+        )
+
+        correo = validar_correo(
+            correo
+        )
+
+        if self.repositorio.correo_existe(
+            correo
+        ):
             raise ValueError(
                 "El correo ya está registrado."
             )
 
-        cursor = self.conexion.execute(
-            """
-            INSERT INTO usuarios (
-                nombre,
-                apellido,
-                correo
+        try:
+            usuario_id = (
+                self.repositorio.insertar(
+                    nombre,
+                    apellido,
+                    correo,
+                )
             )
-            VALUES (?, ?, ?)
-            """,
-            (
-                nombre,
-                apellido,
-                correo,
-            ),
-        )
 
-        self.conexion.commit()
+            self.conexion.commit()
 
-        return self.obtener_usuario(
-            cursor.lastrowid
+        except sqlite3.IntegrityError as error:
+            self.conexion.rollback()
+
+            raise ValueError(
+                "No se pudo registrar "
+                "el usuario."
+            ) from error
+
+        return self.repositorio.obtener(
+            usuario_id
         )
 
     def obtener_usuario(
         self,
         usuario_id,
     ):
-        fila = self.conexion.execute(
-            """
-            SELECT
-                id,
-                nombre,
-                apellido,
-                correo
-            FROM usuarios
-            WHERE id = ?
-            """,
-            (usuario_id,),
-        ).fetchone()
+        usuario_id = validar_identificador(
+            usuario_id,
+            "El identificador del usuario",
+        )
 
-        if fila is None:
-            return None
-
-        return self._crear_usuario(fila)
+        return self.repositorio.obtener(
+            usuario_id
+        )
 
     def listar_usuarios(self):
-        filas = self.conexion.execute(
-            """
-            SELECT
-                id,
-                nombre,
-                apellido,
-                correo
-            FROM usuarios
-            ORDER BY id
-            """
-        ).fetchall()
-
-        return [
-            self._crear_usuario(fila)
-            for fila in filas
-        ]
-
-    def _correo_existe(
-        self,
-        correo,
-    ):
-        fila = self.conexion.execute(
-            """
-            SELECT 1
-            FROM usuarios
-            WHERE correo = ?
-            """,
-            (correo,),
-        ).fetchone()
-
-        return fila is not None
-
-    @staticmethod
-    def _crear_usuario(fila):
-        return Usuario(
-            id=fila["id"],
-            nombre=fila["nombre"],
-            apellido=fila["apellido"],
-            correo=fila["correo"],
-        )
+        return self.repositorio.listar()

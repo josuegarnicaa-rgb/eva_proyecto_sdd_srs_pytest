@@ -1,7 +1,4 @@
-from datetime import (
-    date,
-    timedelta,
-)
+from datetime import date, timedelta
 
 import pytest
 
@@ -25,11 +22,7 @@ def test_crear_prestamo_valido(
     )
 
     assert prestamo.id > 0
-
-    assert (
-        prestamo.estado
-        == "ACTIVO"
-    )
+    assert prestamo.estado == "ACTIVO"
 
 
 # TEST-003.2
@@ -79,11 +72,8 @@ def test_permitir_prestamo_equipo_disponible(
 ):
     hoy = date.today()
 
-    assert (
-        servicio_equipo
-        .esta_disponible(
-            equipo_base.id
-        )
+    assert servicio_equipo.esta_disponible(
+        equipo_base.id
     )
 
     prestamo = (
@@ -96,10 +86,7 @@ def test_permitir_prestamo_equipo_disponible(
         )
     )
 
-    assert (
-        prestamo.estado
-        == "ACTIVO"
-    )
+    assert prestamo.estado == "ACTIVO"
 
     assert not (
         servicio_equipo
@@ -172,16 +159,10 @@ def test_registrar_devolucion_correctamente(
         )
     )
 
-    assert (
-        devuelto.estado
-        == "DEVUELTO"
-    )
+    assert devuelto.estado == "DEVUELTO"
 
-    assert (
-        servicio_equipo
-        .esta_disponible(
-            equipo_base.id
-        )
+    assert servicio_equipo.esta_disponible(
+        equipo_base.id
     )
 
 
@@ -235,24 +216,30 @@ def test_aceptar_fechas_validas(
     usuario_base,
     equipo_base,
 ):
+    hoy = date.today()
+
+    fin = hoy + timedelta(
+        days=5
+    )
+
     prestamo = (
         servicio_prestamo
         .crear_prestamo(
             usuario_base.id,
             equipo_base.id,
-            "2026-09-20",
-            "2026-09-25",
+            hoy.isoformat(),
+            fin.isoformat(),
         )
     )
 
     assert (
         prestamo.fecha_prestamo
-        == "2026-09-20"
+        == hoy.isoformat()
     )
 
     assert (
         prestamo.fecha_devolucion
-        == "2026-09-25"
+        == fin.isoformat()
     )
 
 
@@ -315,10 +302,7 @@ def test_consultar_prestamo_existente(
         )
     )
 
-    assert (
-        consultado
-        == creado
-    )
+    assert consultado == creado
 
 
 # TEST-007.2

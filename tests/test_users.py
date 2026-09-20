@@ -54,14 +54,22 @@ def test_rechazar_nombre_con_numeros(
 def test_rechazar_correo_invalido(
     servicio_usuario,
 ):
-    with pytest.raises(
-        ValueError
-    ):
-        servicio_usuario.registrar_usuario(
-            "María",
-            "López",
-            "correo-invalido",
-        )
+    correos_invalidos = [
+        "correo-invalido",
+        ".maria@gmail.com",
+        "maria.@gmail.com",
+        "ma..ria@gmail.com",
+    ]
+
+    for correo in correos_invalidos:
+        with pytest.raises(
+            ValueError
+        ):
+            servicio_usuario.registrar_usuario(
+                "María",
+                "López",
+                correo,
+            )
 
 
 # TEST-001.5

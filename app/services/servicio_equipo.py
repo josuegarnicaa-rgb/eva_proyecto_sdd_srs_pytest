@@ -1,19 +1,32 @@
-from app.models.equipo import Equipo
+import sqlite3
 
+from app.persistencia.repositorio_equipo import (
+    RepositorioEquipo,
+)
 from app.validators.validador_equipo import (
     validar_codigo_equipo,
     validar_descripcion,
     validar_nombre_equipo,
 )
-
 from app.validators.validador_prestamo import (
     validar_identificador,
 )
 
 
 class ServicioEquipo:
+    ESTADOS_PERMITIDOS = {
+        "DISPONIBLE",
+        "PRESTADO",
+    }
+
     def __init__(self, conexion):
         self.conexion = conexion
+
+        self.repositorio = (
+            RepositorioEquipo(
+                conexion
+            )
+        )
 
     def registrar_equipo(
         self,
@@ -21,36 +34,47 @@ class ServicioEquipo:
         codigo,
         descripcion,
     ):
-        nombre = validar_nombre_equipo(nombre)
-        codigo = validar_codigo_equipo(codigo)
-        descripcion = validar_descripcion(descripcion)
-
-        if self._codigo_existe(codigo):
-            raise ValueError(
-                "El código del equipo ya está registrado."
-            )
-
-        cursor = self.conexion.execute(
-            """
-            INSERT INTO equipos (
-                nombre,
-                codigo,
-                descripcion,
-                estado
-            )
-            VALUES (?, ?, ?, 'DISPONIBLE')
-            """,
-            (
-                nombre,
-                codigo,
-                descripcion,
-            ),
+        nombre = validar_nombre_equipo(
+            nombre
         )
 
-        self.conexion.commit()
+        codigo = validar_codigo_equipo(
+            codigo
+        )
 
-        return self.obtener_equipo(
-            cursor.lastrowid
+        descripcion = validar_descripcion(
+            descripcion
+        )
+
+        if self.repositorio.codigo_existe(
+            codigo
+        ):
+            raise ValueError(
+                "El código del equipo "
+                "ya está registrado."
+            )
+
+        try:
+            equipo_id = (
+                self.repositorio.insertar(
+                    nombre,
+                    codigo,
+                    descripcion,
+                )
+            )
+
+            self.conexion.commit()
+
+        except sqlite3.IntegrityError as error:
+            self.conexion.rollback()
+
+            raise ValueError(
+                "No se pudo registrar "
+                "el equipo."
+            ) from error
+
+        return self.repositorio.obtener(
+            equipo_id
         )
 
     def obtener_equipo(
@@ -62,43 +86,12 @@ class ServicioEquipo:
             "El identificador del equipo",
         )
 
-        fila = self.conexion.execute(
-            """
-            SELECT
-                id,
-                nombre,
-                codigo,
-                descripcion,
-                estado
-            FROM equipos
-            WHERE id = ?
-            """,
-            (equipo_id,),
-        ).fetchone()
-
-        if fila is None:
-            return None
-
-        return self._crear_equipo(fila)
+        return self.repositorio.obtener(
+            equipo_id
+        )
 
     def listar_equipos(self):
-        filas = self.conexion.execute(
-            """
-            SELECT
-                id,
-                nombre,
-                codigo,
-                descripcion,
-                estado
-            FROM equipos
-            ORDER BY id
-            """
-        ).fetchall()
-
-        return [
-            self._crear_equipo(fila)
-            for fila in filas
-        ]
+        return self.repositorio.listar()
 
     def esta_disponible(
         self,
@@ -110,7 +103,8 @@ class ServicioEquipo:
 
         return bool(
             equipo
-            and equipo.estado == "DISPONIBLE"
+            and equipo.estado
+            == "DISPONIBLE"
         )
 
     def cambiar_estado(
@@ -118,57 +112,34 @@ class ServicioEquipo:
         equipo_id,
         estado,
     ):
-        if estado not in {
-            "DISPONIBLE",
-            "PRESTADO",
-        }:
-            raise ValueError(
-                "Estado de equipo no permitido."
-            )
-
         equipo_id = validar_identificador(
             equipo_id,
             "El identificador del equipo",
         )
 
-        cursor = self.conexion.execute(
-            """
-            UPDATE equipos
-            SET estado = ?
-            WHERE id = ?
-            """,
-            (
-                estado,
+        if estado not in (
+            self.ESTADOS_PERMITIDOS
+        ):
+            raise ValueError(
+                "Estado de equipo "
+                "no permitido."
+            )
+
+        filas = (
+            self.repositorio
+            .cambiar_estado(
                 equipo_id,
-            ),
+                estado,
+            )
         )
 
-        if cursor.rowcount == 0:
+        if filas == 0:
             raise ValueError(
                 "El equipo no existe."
             )
 
-    def _codigo_existe(
-        self,
-        codigo,
-    ):
-        fila = self.conexion.execute(
-            """
-            SELECT 1
-            FROM equipos
-            WHERE codigo = ?
-            """,
-            (codigo,),
-        ).fetchone()
+        self.conexion.commit()
 
-        return fila is not None
-
-    @staticmethod
-    def _crear_equipo(fila):
-        return Equipo(
-            id=fila["id"],
-            nombre=fila["nombre"],
-            codigo=fila["codigo"],
-            descripcion=fila["descripcion"],
-            estado=fila["estado"],
+        return self.repositorio.obtener(
+            equipo_id
         )
